@@ -13,10 +13,6 @@ type Insert struct {
 	Ctx 	context.Context
 }
 
-var (
-	
-)
-
 func MssqlTest() {
 	fmt.Println("dal_mssql.go has been called.")
 }
@@ -113,4 +109,25 @@ func (dal *Insert) ManualInsertUnitdata(fName string, lName string, phoneNum str
 
 	_, stmtErr = stmt.Exec(fName, lName, phoneNum, isbn10, isbn13, ccNum, blurb, email)
 	_ = stmt.Close()
+}
+
+
+
+// Create a specified number of tables.
+// Will create tables with a random number of columns specified by minCols and MaxCols
+// prefixName prepends the name of the tables.  These will then have a suffix with the number of the table added.
+func (dal *Insert) CreateTables(numTables int, minCols int, maxCols int, prefixName string) {
+	var CreateTables = `USE tdata
+	CREATE TABLE dbo.` + prefixName + `(
+		id int IDENTITY (1,1) NOT NULL
+	`
+	var r1 = rand.New(rand.NewSource(time.Now().UnixNano()))
+	var numCols = r1.Itnt(maxCols) + minCols
+
+	for i := 0; i < numCols; i++ {
+
+	}
+
+	
+	dal.Db.PrepareContext(dal.Ctx, CreateTables)
 }

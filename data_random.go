@@ -23,8 +23,6 @@ type Name struct {
 	Last		string
 }
 
-var r1 = rand.New(rand.NewSource(time.Now().UnixNano()))
-
 var (
 	phMin = 2020000000
 	phMax = 9999999999
@@ -89,26 +87,31 @@ func LoadNames(filepath string) Names {
 
 // Random first name generator.  I would like the names to be real names.
 func (randPi *Names) RandNameFirst() string {
+	var r1 = rand.New(rand.NewSource(time.Now().UnixNano()))
 	return randPi.Names[r1.Intn(len(randPi.Names))].First
 }
 
 // Random last name generator.  Real names are potentially better.
 func (randPi *Names) RandNameLast() string {
+	var r1 = rand.New(rand.NewSource(time.Now().UnixNano()))
 	return randPi.Names[r1.Intn(len(randPi.Names))].Last
 }
 
 // Random number generator for phone numbers.  Above 2* and below all 9's
 func RandPhoneNumUS() string {
+	var r1 = rand.New(rand.NewSource(time.Now().UnixNano()))
 	return strconv.Itoa(r1.Intn(phMax - phMin) + phMin)
 }
 
 // ISBN10.  Same logic as phone numbers with different range.
 func RandIsbn10() string {
+	var r1 = rand.New(rand.NewSource(time.Now().UnixNano()))
 	return strconv.Itoa(r1.Intn(isbn10Max - isbn10Min) + isbn10Min)
 }
 
 // ISBN13.  Same logic as ISBN with the potential for a trailing X.
 func RandIsbn13() string {
+	var r1 = rand.New(rand.NewSource(time.Now().UnixNano()))
 	return strconv.Itoa(r1.Intn(isbn13Max - isbn13Min) + isbn13Min)
 }
 
@@ -116,6 +119,7 @@ func RandIsbn13() string {
 // Should return all digits
 // Length of number should be 16
 func RandCCNum() string {
+	var r1 = rand.New(rand.NewSource(time.Now().UnixNano()))
 	return strconv.Itoa(r1.Intn(ccMax - ccMin) + ccMin)
 }
 
@@ -123,15 +127,15 @@ func RandCCNum() string {
 // Min length: 0
 // Max length: 2000
 func RandBlurb() string {
-	var r2 = rand.New(rand.NewSource(time.Now().UnixNano()))
-	length := r2.Intn(1000) + 1000
+	var r1 = rand.New(rand.NewSource(time.Now().UnixNano()))
+	length := r1.Intn(1000) + 1000
 	
 	var byteLetters []byte
 
 	for i := 0; i < length; i += 2 {
-		byteLetters = append(byteLetters, byte(r2.Intn(90 - 65) + 65))
-		byteLetters = append(byteLetters, byte(r2.Intn(122 - 97) + 97))
-		if r2.Intn(10) == 5 {
+		byteLetters = append(byteLetters, byte(r1.Intn(90 - 65) + 65))
+		byteLetters = append(byteLetters, byte(r1.Intn(122 - 97) + 97))
+		if r1.Intn(10) == 5 {
 			i++	// Increment the counter by one to maintain length
 			byteLetters = append(byteLetters, byte(32))	// Adding a space character.
 		}
@@ -161,7 +165,8 @@ var domains = [...]string {
 // Uses the name Names type for more realistic emails.
 func (randPi *Names) RandEmail() string {
 	var email, firstName, lastName, domain, tld string
-
+	var r1 = rand.New(rand.NewSource(time.Now().UnixNano()))
+	
 	// Write an if statement to determine if a first name will be used
 	if r1.Intn(100) > 5 {
 		firstName = randPi.Names[r1.Intn(randPi.count)].First
