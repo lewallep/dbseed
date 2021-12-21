@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"database/sql"
+	"math/rand"
+	"time"
 
 	//dsql "github.com/denisenkom/go-mssqldb"
 )
@@ -111,23 +113,61 @@ func (dal *Insert) ManualInsertUnitdata(fName string, lName string, phoneNum str
 	_ = stmt.Close()
 }
 
-
-
 // Create a specified number of tables.
 // Will create tables with a random number of columns specified by minCols and MaxCols
-// prefixName prepends the name of the tables.  These will then have a suffix with the number of the table added.
-func (dal *Insert) CreateTables(numTables int, minCols int, maxCols int, prefixName string) {
-	var CreateTables = `USE tdata
-	CREATE TABLE dbo.` + prefixName + `(
-		id int IDENTITY (1,1) NOT NULL
-	`
+func (dal *Insert) CreateRandomTables(numTables int, minCols int, maxCols int, tablePrefix string) {
+	var ctSeg1 = `USE tdata CREATE TABLE dbo.` 
+	var ctSeg2 = `(id int IDENTITY (1,1) NOT NULL`
+	var ctSeg3 = `);`
 	var r1 = rand.New(rand.NewSource(time.Now().UnixNano()))
-	var numCols = r1.Itnt(maxCols) + minCols
 
-	for i := 0; i < numCols; i++ {
+	for i := 0; i < numTables; i++ {
+		numCols := r1.Intn(maxCols) + minCols 	// Setting a random number for amount of columsn in the table.
+		createTable := ctSeg1 + tablePrefix + fmt.Sprintf("%03d", i)
+		createTable += ctSeg2
 
+		// Inner loop to create the query for the desired amount of columns and type.
+		for z := 0 ; z < numCols; z++ {
+			createTable += randomCols(z)
+		}
+
+		createTable += ctSeg3
+
+		fmt.Printf("createTable: \n%s\n", createTable)
+		stmt, stmtErr := dal.Db.PrepareContext(dal.Ctx, createTable)
+		_, stmtErr = stmt.ExecContext(dal.Ctx) 
+		if stmtErr != nil {
+			panic(stmtErr)
+		}
 	}
+}
 
+// Creates the string text of the column name and datatype
+// Uses a pseudo random number generator for choosing the datatypes.
+func randomCols(colNum int) string {
+	var r1 = rand.New(rand.NewSource(time.Now().UnixNano()))
+	var rn = r1.Intn(100)
+
+	colNum += 1
+	switch {
+	case rn < 60:
+		return fmt.Sprintf(",col_%03d VARCHAR(MAX)", colNum)
+	case rn >= 60 && rn < 70:
+		fmt.Println("Making ints")
+		return fmt.Sprintf(",col_%03d INT", colNum)
+	case rn >= 70 && rn < 80:
+		fmt.Println("Making dates")
+		return fmt.Sprintf(",col_%03d DATETIME2", colNum)
+	case rn >= 80 && rn < 90:
+		fmt.Println("Making money")
+		return fmt.Sprintf(",col_%03d MONEY", colNum)
+	default:
+		fmt.Println("Default case found.  Maybe this should be the varchar....")
+		return ""
+	}
+}
+
+// Populates the tables created randomly with data
+func (dal *Insert) InsertRandomData() {
 	
-	dal.Db.PrepareContext(dal.Ctx, CreateTables)
 }
