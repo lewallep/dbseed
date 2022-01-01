@@ -1,7 +1,7 @@
 package dbseed
 
 import (
-	"context"
+//	"context"
 	"fmt"
 	"database/sql"
 	"math/rand"
@@ -9,11 +9,6 @@ import (
 
 	//dsql "github.com/denisenkom/go-mssqldb"
 )
-
-type Insert struct {
-	Db 		*sql.DB
-	Ctx 	context.Context
-}
 
 func MssqlTest() {
 	fmt.Println("dal_mssql.go has been called.")
@@ -71,7 +66,7 @@ func MssqlCreateTableUnitdata(db *sql.DB)  {
 	}	
 }
 
-func (dal *Insert) MssqlGetCountUnitdata() int {
+func (dal *Dal) MssqlGetCountUnitdata() int {
 	var localRows int
 
 	countRowsQ := `USE tdata SELECT COUNT(*) from unitdata;`
@@ -101,7 +96,7 @@ var InsertOrder = `USE tdata
 		,email
 	) values (@p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8)`
 
-func (dal *Insert) ManualInsertUnitdata(fName string, lName string, phoneNum string, isbn10 int, 
+func (dal *Dal) ManualInsertUnitdata(fName string, lName string, phoneNum string, isbn10 int, 
 		isbn13 int, ccNum int, blurb string, email string) {
 	
 	stmt, stmtErr := dal.Db.PrepareContext(dal.Ctx, InsertOrder)
@@ -115,7 +110,7 @@ func (dal *Insert) ManualInsertUnitdata(fName string, lName string, phoneNum str
 
 // Create a specified number of tables.
 // Will create tables with a random number of columns specified by minCols and MaxCols
-func (dal *Insert) CreateRandomTables(numTables int, minCols int, maxCols int, tablePrefix string) {
+func (dal *Dal) CreateRandomTables(numTables int, minCols int, maxCols int, tablePrefix string) error {
 	var ctSeg1 = `USE tdata CREATE TABLE dbo.` 
 	var ctSeg2 = `(id int IDENTITY (1,1) NOT NULL`
 	var ctSeg3 = `);`
@@ -133,13 +128,17 @@ func (dal *Insert) CreateRandomTables(numTables int, minCols int, maxCols int, t
 
 		createTable += ctSeg3
 
-		fmt.Printf("createTable: \n%s\n", createTable)
 		stmt, stmtErr := dal.Db.PrepareContext(dal.Ctx, createTable)
+		if stmtErr != nil {
+			return stmtErr
+		}
 		_, stmtErr = stmt.ExecContext(dal.Ctx) 
 		if stmtErr != nil {
-			panic(stmtErr)
+			return stmtErr
 		}
 	}
+
+	return nil
 }
 
 // Creates the string text of the column name and datatype
@@ -147,27 +146,90 @@ func (dal *Insert) CreateRandomTables(numTables int, minCols int, maxCols int, t
 func randomCols(colNum int) string {
 	var r1 = rand.New(rand.NewSource(time.Now().UnixNano()))
 	var rn = r1.Intn(100)
+	var colSeg = `, col_`
 
 	colNum += 1
 	switch {
 	case rn < 60:
-		return fmt.Sprintf(",col_%03d VARCHAR(MAX)", colNum)
+		return fmt.Sprintf("%s%03d VARCHAR(MAX)", colSeg, colNum)
 	case rn >= 60 && rn < 70:
-		fmt.Println("Making ints")
-		return fmt.Sprintf(",col_%03d INT", colNum)
+		return fmt.Sprintf("%s%03d INT", colSeg, colNum)
 	case rn >= 70 && rn < 80:
-		fmt.Println("Making dates")
-		return fmt.Sprintf(",col_%03d DATETIME2", colNum)
+		return fmt.Sprintf("%s%03d DATETIME2", colSeg, colNum)
 	case rn >= 80 && rn < 90:
-		fmt.Println("Making money")
-		return fmt.Sprintf(",col_%03d MONEY", colNum)
+		return fmt.Sprintf("%s%03d MONEY", colSeg, colNum)
 	default:
-		fmt.Println("Default case found.  Maybe this should be the varchar....")
-		return ""
+		return fmt.Sprintf("%s%03d VARCHAR(MAX)", colSeg, colNum)
 	}
 }
 
 // Populates the tables created randomly with data
-func (dal *Insert) InsertRandomData() {
-	
+func (dal *Dal) InsertRandomData() error {
+	// call function to get information about created tables
+	// Return error if problematic.
+	err := dal.getRandTableAndColMeta()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
+
+func (dal *Dal) getRandTableAndColMeta() error {
+	var tableName, colId, colName, colDatatype string
+
+	q := `USE tdata SELECT tab.name as table_name, 
+    	col.column_id,
+    	col.name as column_name, 
+    	t.name as data_type  
+	FROM sys.tables as tab
+    INNER JOIN sys.columns as col
+        on tab.object_id = col.object_id
+    LEFT JOIN sys.types as t
+    	on col.user_type_id = t.user_type_id
+	ORDER BY table_name, 
+    	column_id;`
+
+    rows, err := dal.Db.Query(q)
+    if err != nil {
+    	return err
+    }
+    defer rows.Close()
+    
+    dal.tables = make(map[string]*TableMeta)
+
+    for rows.Next() {
+    	err = rows.Scan(&tableName, &colId, &colName, &colDatatype)
+    	fmt.Printf("tableName: %s\n", tableName)
+    	fmt.Printf("coldId: %s\n", colId)
+    	fmt.Printf("colName: %s\n", colName)
+    	fmt.Printf("colDatatype: %s\n", colDatatype)
+
+    	if err != nil {
+    		return err
+    	}
+    	// Check to see if the table name exists in the map.  If exists do nothing
+    	if _, ok := dal.tables[tableName]; !ok {
+    		dal.tables[tableName] = &TableMeta{}
+    		dal.tables[tableName].cols = make(map[string]string)
+    		dal.tables[tableName].cols[colName] = colDatatype
+    	} else {
+    		cols := dal.tables[tableName].cols
+    		if _, ok := cols[colName]; !ok {
+    			cols[colName] = colDatatype
+    		}
+
+    	}
+    }
+
+    fmt.Printf("tables len: %d\n", len(dal.tables))
+    for k, v := range dal.tables {
+    	fmt.Printf("key: %s\n", k)
+    	fmt.Printf("cols: %v\n", v)
+    }
+
+
+
+	return err
+}
+
