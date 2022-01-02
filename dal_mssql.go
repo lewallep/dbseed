@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"database/sql"
 	"math/rand"
+	"sort"
+	"strconv"
 	"time"
 
 	//dsql "github.com/denisenkom/go-mssqldb"
@@ -112,7 +114,7 @@ func (dal *Dal) ManualInsertUnitdata(fName string, lName string, phoneNum string
 // Will create tables with a random number of columns specified by minCols and MaxCols
 func (dal *Dal) CreateRandomTables(numTables int, minCols int, maxCols int, tablePrefix string) error {
 	var ctSeg1 = `USE tdata CREATE TABLE dbo.` 
-	var ctSeg2 = `(id int IDENTITY (1,1) NOT NULL`
+	var ctSeg2 = `(col_001 int IDENTITY (1,1) NOT NULL`
 	var ctSeg3 = `);`
 	var r1 = rand.New(rand.NewSource(time.Now().UnixNano()))
 
@@ -122,7 +124,7 @@ func (dal *Dal) CreateRandomTables(numTables int, minCols int, maxCols int, tabl
 		createTable += ctSeg2
 
 		// Inner loop to create the query for the desired amount of columns and type.
-		for z := 0 ; z < numCols; z++ {
+		for z := 1 ; z <= numCols; z++ {
 			createTable += randomCols(z)
 		}
 
@@ -172,9 +174,20 @@ func (dal *Dal) InsertRandomData() error {
 		return err
 	}
 
+	err = dal.sortColsAsc()
+
+	// Create table insert queries
+	err = dal.constructInsertQueries()
+	if err != nil {
+		return err
+	}
+
+	dal.PrintTableQueries()
+
 	return nil
 }
 
+// Requires the USE **db name** to ensure the correct database is mapped.  Otherwise the default db is used.
 func (dal *Dal) getRandTableAndColMeta() error {
 	var tableName, colId, colName, colDatatype string
 
@@ -195,19 +208,15 @@ func (dal *Dal) getRandTableAndColMeta() error {
     	return err
     }
     defer rows.Close()
-    
+
     dal.tables = make(map[string]*TableMeta)
 
     for rows.Next() {
     	err = rows.Scan(&tableName, &colId, &colName, &colDatatype)
-    	fmt.Printf("tableName: %s\n", tableName)
-    	fmt.Printf("coldId: %s\n", colId)
-    	fmt.Printf("colName: %s\n", colName)
-    	fmt.Printf("colDatatype: %s\n", colDatatype)
-
     	if err != nil {
     		return err
     	}
+
     	// Check to see if the table name exists in the map.  If exists do nothing
     	if _, ok := dal.tables[tableName]; !ok {
     		dal.tables[tableName] = &TableMeta{}
@@ -218,18 +227,57 @@ func (dal *Dal) getRandTableAndColMeta() error {
     		if _, ok := cols[colName]; !ok {
     			cols[colName] = colDatatype
     		}
-
     	}
     }
-
-    fmt.Printf("tables len: %d\n", len(dal.tables))
-    for k, v := range dal.tables {
-    	fmt.Printf("key: %s\n", k)
-    	fmt.Printf("cols: %v\n", v)
-    }
-
-
 
 	return err
 }
 
+// Creates the queries needed for each table.
+func (dal *Dal) constructInsertQueries() error {
+	
+	for k, v := range dal.tables {
+		count := 0
+		colLen := len(v.colsAsc)
+		query := `USE tdata INSERT INTO ` + k + ` (`
+		query2 := `) values (`	
+
+		for _, colN := range v.colsAsc {
+			query += colN
+			query2 += `@p` + strconv.Itoa(count + 1)
+
+			if count + 1 < colLen {
+				query += `, `
+				query2 += `, `
+			}
+			count++
+		}
+		
+		query += query2 + `)`
+
+		v.query = query
+	}
+
+	return nil
+}
+
+func (dal *Dal) sortColsAsc() error {
+	for tableK, v := range dal.tables {
+		v.colsAsc = make([]string, 0, len(v.cols))
+
+		for key, _ := range v.cols {
+			v.colsAsc = append(v.colsAsc, key)
+		}
+
+		sort.Strings(v.colsAsc)
+		fmt.Printf("tableK: %s %v\n", tableK, v.colsAsc)
+
+	}
+
+	return nil
+}
+
+func (dal *Dal) executeInsert() error {
+
+	return nil
+}

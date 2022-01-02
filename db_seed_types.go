@@ -13,4 +13,6 @@ type Dal struct {
 
 type TableMeta struct {
 	cols 		map[string]string		// Key col name, value string col data type
+	colsAsc		[]string				// Sorted in Ascending order.
+	query		string
 }
