@@ -182,7 +182,13 @@ func (dal *Dal) InsertRandomData() error {
 		return err
 	}
 
-	dal.PrintTableQueries()
+	err = dal.distributeRows()
+
+	// Entry point for creating the data to insert and the execution of the query.
+	err = dal.executeInsert()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -235,7 +241,6 @@ func (dal *Dal) getRandTableAndColMeta() error {
 
 // Creates the queries needed for each table.
 func (dal *Dal) constructInsertQueries() error {
-	
 	for k, v := range dal.tables {
 		count := 0
 		colLen := len(v.colsAsc)
@@ -261,8 +266,9 @@ func (dal *Dal) constructInsertQueries() error {
 	return nil
 }
 
+// Keeps a sorted list of the columns so I can associate the type with the correct data to be inserted.
 func (dal *Dal) sortColsAsc() error {
-	for tableK, v := range dal.tables {
+	for _, v := range dal.tables {
 		v.colsAsc = make([]string, 0, len(v.cols))
 
 		for key, _ := range v.cols {
@@ -270,14 +276,41 @@ func (dal *Dal) sortColsAsc() error {
 		}
 
 		sort.Strings(v.colsAsc)
-		fmt.Printf("tableK: %s %v\n", tableK, v.colsAsc)
-
 	}
 
 	return nil
 }
 
+// Calculates the amount of rows to be distributed each time.
+func (dal *Dal) distributeRows() error {
+	var r1 = rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	var rowsToDistribute = dal.RowsToAdd
+	fmt.Printf("rowsToDistribute: %d\n", rowsToDistribute)
+
+	for _, t := range dal.tables {
+		
+		t.rowsToAdd = (r1.Intn(50) / 100) * rowsToDistribute
+		fmt.Printf("t.rowsToAdd: %d\n", t.rowsToAdd)
+
+		rowsToDistribute -= t.rowsToAdd
+		fmt.Printf("rowsToDistribute: %d\n", rowsToDistribute)
+	}
+
+	return nil
+}
+
+// Goes through the list of columns and provides the appropriate datatype for the column
 func (dal *Dal) executeInsert() error {
+	var params []interface{}
+	params = append(params, "first", 2, 666, 5.99, "another string")
+
+	// for _, t := range dal.tables {
+	// 	// Add a single function to return the array of interfaces for the insertion.
+	// 	//fmt.Printf("t: %v\n", t)
+	// }
+
+	//fmt.Printf("params: %v\n", params)
 
 	return nil
 }
