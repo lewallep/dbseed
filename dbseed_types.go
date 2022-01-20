@@ -17,5 +17,5 @@ type TableMeta struct {
 	cols 		map[string]string		// Key col name, value string col data type
 	colsAsc		[]string				// Sorted in Ascending order.
 	query		string
-	rowsToAdd	int 					// How many rows to add during this specific run of the program.
+	rowsToAdd	float64					// How many rows to add during this specific run of the program.
 }

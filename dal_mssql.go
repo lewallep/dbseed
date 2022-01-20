@@ -118,6 +118,7 @@ func (dal *Dal) CreateRandomTables(numTables int, minCols int, maxCols int, tabl
 	var ctSeg3 = `);`
 	var r1 = rand.New(rand.NewSource(time.Now().UnixNano()))
 
+	fmt.Printf("numTables in CreateRandomTalbes: %d\n", numTables)
 	for i := 0; i < numTables; i++ {
 		numCols := r1.Intn(maxCols) + minCols 	// Setting a random number for amount of columsn in the table.
 		createTable := ctSeg1 + tablePrefix + fmt.Sprintf("%03d", i)
@@ -285,16 +286,13 @@ func (dal *Dal) sortColsAsc() error {
 func (dal *Dal) distributeRows() error {
 	var r1 = rand.New(rand.NewSource(time.Now().UnixNano()))
 
-	var rowsToDistribute = dal.RowsToAdd
-	fmt.Printf("rowsToDistribute: %d\n", rowsToDistribute)
+	var rowsToDistribute = float64(dal.RowsToAdd)
+
+	fmt.Printf("len(dal.tables): %d\n", len(dal.tables))
 
 	for _, t := range dal.tables {
-		
-		t.rowsToAdd = (r1.Intn(50) / 100) * rowsToDistribute
-		fmt.Printf("t.rowsToAdd: %d\n", t.rowsToAdd)
-
+		t.rowsToAdd = float64(r1.Intn(50)) / 100 * rowsToDistribute
 		rowsToDistribute -= t.rowsToAdd
-		fmt.Printf("rowsToDistribute: %d\n", rowsToDistribute)
 	}
 
 	return nil
