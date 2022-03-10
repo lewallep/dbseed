@@ -4,6 +4,7 @@ import (
 //	"context"
 	"fmt"
 	"database/sql"
+	"math"
 	"math/rand"
 	"sort"
 	"strconv"
@@ -285,13 +286,18 @@ func (dal *Dal) sortColsAsc() error {
 // Calculates the amount of rows to be distributed each time.
 func (dal *Dal) distributeRows() error {
 	var r1 = rand.New(rand.NewSource(time.Now().UnixNano()))
-
 	var rowsToDistribute = float64(dal.RowsToAdd)
+	var counter int = 0;
 
 	// Logic is needs to be changed to have only integers with remainders only on the last table.
 	for _, t := range dal.tables {
-		t.rowsToAdd = float64(r1.Intn(50)) / 100 * rowsToDistribute
-		rowsToDistribute -= t.rowsToAdd
+		if counter < len(dal.tables) - 1 {
+			t.rowsToAdd = math.Floor(float64(r1.Intn(50)) / 100 * rowsToDistribute)
+			rowsToDistribute -= t.rowsToAdd
+			counter++
+		} else {
+			t.rowsToAdd += rowsToDistribute
+		}
 	}
 
 	return nil
