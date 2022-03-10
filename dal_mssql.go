@@ -120,7 +120,7 @@ func (dal *Dal) CreateRandomTables(numTables int, minCols int, maxCols int, tabl
 
 	fmt.Printf("numTables in CreateRandomTalbes: %d\n", numTables)
 	for i := 0; i < numTables; i++ {
-		numCols := r1.Intn(maxCols) + minCols 	// Setting a random number for amount of columsn in the table.
+		numCols := r1.Intn(maxCols) + minCols 	// Setting a random number for amount of columns in the table.
 		createTable := ctSeg1 + tablePrefix + fmt.Sprintf("%03d", i)
 		createTable += ctSeg2
 
@@ -138,7 +138,7 @@ func (dal *Dal) CreateRandomTables(numTables int, minCols int, maxCols int, tabl
 		_, stmtErr = stmt.ExecContext(dal.Ctx) 
 		if stmtErr != nil {
 			return stmtErr
-		}
+		} 
 	}
 
 	return nil
@@ -261,7 +261,7 @@ func (dal *Dal) constructInsertQueries() error {
 		
 		query += query2 + `)`
 
-		v.query = query
+		v.query = query 	// Stores the completed query in the data structure.
 	}
 
 	return nil
@@ -288,8 +288,7 @@ func (dal *Dal) distributeRows() error {
 
 	var rowsToDistribute = float64(dal.RowsToAdd)
 
-	fmt.Printf("len(dal.tables): %d\n", len(dal.tables))
-
+	// Logic is needs to be changed to have only integers with remainders only on the last table.
 	for _, t := range dal.tables {
 		t.rowsToAdd = float64(r1.Intn(50)) / 100 * rowsToDistribute
 		rowsToDistribute -= t.rowsToAdd
