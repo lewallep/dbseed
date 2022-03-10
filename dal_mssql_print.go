@@ -24,3 +24,11 @@ func (dal *Dal) PrintTableRowsToAdd() {
 func (dal *Dal) TableCount() {
 	fmt.Printf("")
 }
+
+func (dal *Dal) PrintColTypes() {
+	for tName, table := range dal.tables {
+		for cName, cType := range table.cols {
+			fmt.Printf("%s \t\t %s \t\t %s\n", tName, cName, cType)
+		}
+	}
+}

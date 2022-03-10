@@ -119,7 +119,6 @@ func (dal *Dal) CreateRandomTables(numTables int, minCols int, maxCols int, tabl
 	var ctSeg3 = `);`
 	var r1 = rand.New(rand.NewSource(time.Now().UnixNano()))
 
-	fmt.Printf("numTables in CreateRandomTalbes: %d\n", numTables)
 	for i := 0; i < numTables; i++ {
 		numCols := r1.Intn(maxCols) + minCols 	// Setting a random number for amount of columns in the table.
 		createTable := ctSeg1 + tablePrefix + fmt.Sprintf("%03d", i)
@@ -178,8 +177,14 @@ func (dal *Dal) InsertRandomData() error {
 
 	err = dal.sortColsAsc()
 
-	// Create table insert queries
+	// Create table insert queries for insertions later
 	err = dal.constructInsertQueries()
+	if err != nil {
+		return err
+	}
+
+	// Find and store datatype of each column by table
+	err = dal.colTypes()
 	if err != nil {
 		return err
 	}
@@ -268,6 +273,10 @@ func (dal *Dal) constructInsertQueries() error {
 	return nil
 }
 
+func (dal *Dal) colTypes() error {
+	return nil
+}
+
 // Keeps a sorted list of the columns so I can associate the type with the correct data to be inserted.
 func (dal *Dal) sortColsAsc() error {
 	for _, v := range dal.tables {
@@ -308,12 +317,7 @@ func (dal *Dal) executeInsert() error {
 	var params []interface{}
 	params = append(params, "first", 2, 666, 5.99, "another string")
 
-	// for _, t := range dal.tables {
-	// 	// Add a single function to return the array of interfaces for the insertion.
-	// 	//fmt.Printf("t: %v\n", t)
-	// }
-
-	//fmt.Printf("params: %v\n", params)
+	// I have the column types recorded 
 
 	return nil
 }
