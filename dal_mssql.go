@@ -183,12 +183,6 @@ func (dal *Dal) InsertRandomData() error {
 		return err
 	}
 
-	// Find and store datatype of each column by table
-	err = dal.colTypes()
-	if err != nil {
-		return err
-	}
-
 	err = dal.distributeRows()
 
 	// Entry point for creating the data to insert and the execution of the query.
