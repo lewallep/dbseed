@@ -119,9 +119,15 @@ func (dal *Dal) CreateRandomTables(numTables int, minCols int, maxCols int, tabl
 	var ctSeg2 = `(col_001 int IDENTITY (1,1) NOT NULL`
 	var ctSeg3 = `);`
 	var r1 = rand.New(rand.NewSource(time.Now().UnixNano()))
+	var numCols = 0;
 
 	for i := 0; i < numTables; i++ {
-		numCols := r1.Intn(maxCols) + minCols 	// Setting a random number for amount of columns in the table.
+		if maxCols == minCols {
+			numCols = minCols
+		} else {
+			numCols = r1.Intn(maxCols - minCols) + minCols 	// Setting a random number for amount of columns in the table.
+		}
+
 		createTable := ctSeg1 + tablePrefix + fmt.Sprintf("%03d", i)
 		createTable += ctSeg2
 
@@ -156,12 +162,13 @@ func randomCols(colNum int) string {
 	switch {
 	case rn < 60:
 		return fmt.Sprintf("%s%03d VARCHAR(MAX)", colSeg, colNum)
-	case rn >= 60 && rn < 70:
-		return fmt.Sprintf("%s%03d INT", colSeg, colNum)
-	case rn >= 70 && rn < 80:
-		return fmt.Sprintf("%s%03d DATETIME2", colSeg, colNum)
-	case rn >= 80 && rn < 90:
-		return fmt.Sprintf("%s%03d MONEY", colSeg, colNum)
+	// Commented out to test variadic function for prepared statement
+	// case rn >= 60 && rn < 70:
+	// 	return fmt.Sprintf("%s%03d INT", colSeg, colNum)
+	// case rn >= 70 && rn < 80:
+	// 	return fmt.Sprintf("%s%03d DATETIME2", colSeg, colNum)
+	// case rn >= 80 && rn < 90:
+	// 	return fmt.Sprintf("%s%03d MONEY", colSeg, colNum)
 	default:
 		return fmt.Sprintf("%s%03d VARCHAR(MAX)", colSeg, colNum)
 	}
@@ -250,18 +257,18 @@ func (dal *Dal) constructInsertQueries() error {
 		query2 := `) values (`	
 
 		for _, colN := range v.colsAsc {
-			query += colN
-			query2 += `@p` + strconv.Itoa(count + 1)
-
-			if count + 1 < colLen {
-				query += `, `
-				query2 += `, `
+			if count >= 1 {
+				query += colN
+				query2 += `@p` + strconv.Itoa(count)
+				if count + 1 < colLen {
+					query += `, `
+					query2 += `, `
+				}
 			}
+
 			count++
 		}
-		
 		query += query2 + `)`
-
 		v.query = query 	// Stores the completed query in the data structure.
 	}
 
@@ -307,14 +314,14 @@ func (dal *Dal) distributeRows() error {
 func (dal *Dal) distributeTables() error {
 	var wg sync.WaitGroup
 	tCh := make(chan *TableMeta, 1000)
+	
 	wg.Add(1)
-
 	go dal.loadTableChan(&wg, tCh)
 
 	// Creates the workers for the different tables.  Hard coded number of workers for initial MVP.
 	for i := 0; i < 1; i++ {
 		wg.Add(1)
-		go insertRows(&wg, tCh)
+		go dal.insertRows(&wg, tCh)
 	} 
 	wg.Wait()
 	return nil
@@ -329,27 +336,41 @@ func (dal *Dal) loadTableChan(wg *sync.WaitGroup, tCh chan *TableMeta) {
 	wg.Done()
 }
 
-func insertRows(wg *sync.WaitGroup, tCh chan *TableMeta) {
+func (dal *Dal) insertRows(wg *sync.WaitGroup, tCh chan *TableMeta) {
 	for table := range tCh {
-
-
 		// Choose what type of data for each column here.
 		// Iterate over each column and store the data in an array or dictionary.
 		itr := 0
-		colData := []string
+		colData := make([]string, 20, 20)
+		fmt.Printf("table.query: %v\n", table.query)
 
-		for key, col := range table.cols {
-			colData[itr] = DataType()
+		for _, col := range table.cols {
+			// fmt.Printf("col: %v\n\n", col)
+			// fmt.Printf("key: %v\n\n", key)
+			colData[itr] = DataType(col)
 			itr++
 		}
 
-		for i := 0; i < int(table.rowsToAdd); i++ {
-			// based on the column datatype determine what type of insert to do.  For example
-			// varchar could have an email, blurb, etc.
+		//fmt.Printf("colData: %v\n", colData)
+		values :=  make([]interface{}, 0, 3)
+		values = append(values, "col one", "col two", "col three")
 
-			// maybe use an enumerator for a switch statement.
-			// to randomize which type of data to insert per column.
+		fmt.Printf("values: %v\n", values)
+		fmt.Printf("len(values): %v\n", len(values))
+
+		stmt, stmtErr := dal.Db.PrepareContext(dal.Ctx, table.query)
+		if stmtErr != nil {
+			panic(stmtErr)
 		}
+		_, stmtErr = stmt.Exec(values...)
+		if stmtErr != nil {
+			panic(stmtErr)
+		}
+		for i := 0; i < int(table.rowsToAdd); i++ {
+			// get new values for each row
+			// insert the row
+		}
+		_ = stmt.Close()
 	}
 
 	wg.Done()

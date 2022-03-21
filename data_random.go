@@ -147,16 +147,17 @@ func RandBlurb() string {
 // Returns a random integer
 func RandInt() int {
 
+	return 1
 }
 
 // Returns a random decimal
-func RandMoney() deicmal {
-
+func RandMoney() float64 {
+	return 0.0
 }
 
 // Returns a random date
-func RandDate() {
-
+func RandDate() time.Time {
+	return time.Now()
 }
 
 var topLevelDomains = [...]string {
@@ -223,6 +224,8 @@ func (randPi *Names) RandEmail() string {
 	return email
 }
 
-func DataType(colType string) {
+func DataType(colType string) string  {
+	fmt.Printf("colType: %v\n", colType)
 
+	return "colType will go here"
 }
