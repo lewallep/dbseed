@@ -331,7 +331,18 @@ func (dal *Dal) loadTableChan(wg *sync.WaitGroup, tCh chan *TableMeta) {
 
 func insertRows(wg *sync.WaitGroup, tCh chan *TableMeta) {
 	for table := range tCh {
-		// Insert rows until the table is full
+
+
+		// Choose what type of data for each column here.
+		// Iterate over each column and store the data in an array or dictionary.
+		itr := 0
+		colData := []string
+
+		for key, col := range table.cols {
+			colData[itr] = DataType()
+			itr++
+		}
+
 		for i := 0; i < int(table.rowsToAdd); i++ {
 			// based on the column datatype determine what type of insert to do.  For example
 			// varchar could have an email, blurb, etc.
@@ -344,3 +355,6 @@ func insertRows(wg *sync.WaitGroup, tCh chan *TableMeta) {
 	wg.Done()
 }
 
+// On randomizing function to pick the type of data.
+
+// another switch statement with the enumerator types 

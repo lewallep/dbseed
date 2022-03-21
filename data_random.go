@@ -154,6 +154,7 @@ func RandMoney() deicmal {
 
 }
 
+// Returns a random date
 func RandDate() {
 
 }
@@ -222,14 +223,6 @@ func (randPi *Names) RandEmail() string {
 	return email
 }
 
-// Enumerators for choosing the form of the data for the 
-const (
-	First = iota
-	Last
-	Phone
-	Isbn10
-	Isbn13
-	CC
-	Blurb
-	Email
-)
+func DataType(colType string) {
+
+}
