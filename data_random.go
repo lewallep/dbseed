@@ -144,6 +144,20 @@ func RandBlurb() string {
 	return string(byteLetters)
 }
 
+// Returns a random integer
+func RandInt() int {
+
+}
+
+// Returns a random decimal
+func RandMoney() deicmal {
+
+}
+
+func RandDate() {
+
+}
+
 var topLevelDomains = [...]string {
 	"com",
 	"us",
@@ -207,3 +221,15 @@ func (randPi *Names) RandEmail() string {
 
 	return email
 }
+
+// Enumerators for choosing the form of the data for the 
+const (
+	First = iota
+	Last
+	Phone
+	Isbn10
+	Isbn13
+	CC
+	Blurb
+	Email
+)

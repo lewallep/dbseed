@@ -305,21 +305,10 @@ func (dal *Dal) distributeRows() error {
 
 // Goes through the list of columns and provides the appropriate datatype for the column
 func (dal *Dal) distributeTables() error {
-	var params []interface{}
-	params = append(params, "first", 2, 666, 5.99, "another string")
 	var wg sync.WaitGroup
-
-	// I have the column types recorded in the Dal 
-
-	// Be able to tune how many workers are jamming rows into the database.
-	// Have a single worker work with a single table at a time.
-
-	// Create a channel and load all of the talbe names into it so the workers can grab
-	// a tablee at a time.
-	
 	tCh := make(chan *TableMeta, 1000)
-	
 	wg.Add(1)
+
 	go dal.loadTableChan(&wg, tCh)
 
 	// Creates the workers for the different tables.  Hard coded number of workers for initial MVP.
@@ -327,32 +316,31 @@ func (dal *Dal) distributeTables() error {
 		wg.Add(1)
 		go insertRows(&wg, tCh)
 	} 
-
 	wg.Wait()
-
 	return nil
 }
 
 // Loads up the table meta data into the channel for the worker processes
 func (dal *Dal) loadTableChan(wg *sync.WaitGroup, tCh chan *TableMeta) {
-	
 	for _, table := range dal.tables {
 		tCh <- table
 	}
-
 	close(tCh)
 	wg.Done()
 }
 
-
-// Receives the name of the table
-// Receives the pointer to the TableMeta struct
 func insertRows(wg *sync.WaitGroup, tCh chan *TableMeta) {
-
 	for table := range tCh {
-		fmt.Printf("tch: %v\n", table)
+		// Insert rows until the table is full
+		for i := 0; i < int(table.rowsToAdd); i++ {
+			// based on the column datatype determine what type of insert to do.  For example
+			// varchar could have an email, blurb, etc.
+
+			// maybe use an enumerator for a switch statement.
+			// to randomize which type of data to insert per column.
+		}
 	}
-	// use a for loop to grab the next available channel at a time.
 
 	wg.Done()
 }
+
