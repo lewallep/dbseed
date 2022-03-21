@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"sort"
 	"strconv"
+	"sync"
 	"time"
 
 	//dsql "github.com/denisenkom/go-mssqldb"
@@ -186,7 +187,7 @@ func (dal *Dal) InsertRandomData() error {
 	err = dal.distributeRows()
 
 	// Entry point for creating the data to insert and the execution of the query.
-	err = dal.executeInsert()
+	err = dal.distributeTables()
 	if err != nil {
 		return err
 	}
@@ -267,10 +268,6 @@ func (dal *Dal) constructInsertQueries() error {
 	return nil
 }
 
-func (dal *Dal) colTypes() error {
-	return nil
-}
-
 // Keeps a sorted list of the columns so I can associate the type with the correct data to be inserted.
 func (dal *Dal) sortColsAsc() error {
 	for _, v := range dal.tables {
@@ -307,11 +304,55 @@ func (dal *Dal) distributeRows() error {
 }
 
 // Goes through the list of columns and provides the appropriate datatype for the column
-func (dal *Dal) executeInsert() error {
+func (dal *Dal) distributeTables() error {
 	var params []interface{}
 	params = append(params, "first", 2, 666, 5.99, "another string")
+	var wg sync.WaitGroup
 
-	// I have the column types recorded 
+	// I have the column types recorded in the Dal 
+
+	// Be able to tune how many workers are jamming rows into the database.
+	// Have a single worker work with a single table at a time.
+
+	// Create a channel and load all of the talbe names into it so the workers can grab
+	// a tablee at a time.
+	
+	tCh := make(chan *TableMeta, 1000)
+	
+	wg.Add(1)
+	go dal.loadTableChan(&wg, tCh)
+
+	// Creates the workers for the different tables.  Hard coded number of workers for initial MVP.
+	for i := 0; i < 1; i++ {
+		wg.Add(1)
+		go insertRows(&wg, tCh)
+	} 
+
+	wg.Wait()
 
 	return nil
+}
+
+// Loads up the table meta data into the channel for the worker processes
+func (dal *Dal) loadTableChan(wg *sync.WaitGroup, tCh chan *TableMeta) {
+	
+	for _, table := range dal.tables {
+		tCh <- table
+	}
+
+	close(tCh)
+	wg.Done()
+}
+
+
+// Receives the name of the table
+// Receives the pointer to the TableMeta struct
+func insertRows(wg *sync.WaitGroup, tCh chan *TableMeta) {
+
+	for table := range tCh {
+		fmt.Printf("tch: %v\n", table)
+	}
+	// use a for loop to grab the next available channel at a time.
+
+	wg.Done()
 }

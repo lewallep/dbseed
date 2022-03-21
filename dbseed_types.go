@@ -8,7 +8,7 @@ import (
 type Dal struct {
 	Db 			*sql.DB
 	Ctx 		context.Context
-	tables 		map[string]*TableMeta	//Map of table names with a map of column names and type as the value
+	tables 		map[string]*TableMeta	// Map of table names with a map of column names and type as the value
 	RowsToAdd	int 					// Total rows to add for the run.
 	NumTables   int
 }
